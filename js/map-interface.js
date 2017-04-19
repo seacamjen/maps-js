@@ -50,6 +50,8 @@ function geolocationSuccess(position) {
       .then(function(response) {
         console.log(response.results[0].geometry.location);
         latlongArray.push(response.results[0].geometry.location);
+      })
+      .then(function(response) {
         var markers = latlongArray.map(function(location, i) {
           return new google.maps.Marker({
             position: location,
@@ -59,19 +61,9 @@ function geolocationSuccess(position) {
 
         var markerCluster = new MarkerClusterer(mapObject, markers,
                   {imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
-      });
+      })
     });
   });
-  // console.log(latlongArray);
-  // var markers = latlongArray.map(function(location, i) {
-  //   return new google.maps.Marker({
-  //     position: location,
-  //     label: labels[i % labels.length]
-  //   });
-  // });
-  //
-  // var markerCluster = new MarkerClusterer(mapObject, markers,
-  //           {imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
 }
 
 function geolocationError(positionError) {
