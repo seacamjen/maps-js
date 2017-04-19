@@ -1,9 +1,8 @@
 var apiKey = require('./../.env').apiKey;
-
-
+var geoKey = require('./../.env').geoKey;
 
 $( document ).ready(function() {
-  $.getScript('http://maps.google.com/maps/api/js?key=' + apiKey)
+  $.getScript('http://maps.google.com/maps/api/js?key=' + apiKey);
   $('#locateUser').click(locateUser);
 });
 
@@ -23,34 +22,56 @@ function locateUser() {
 }
 
 
-
-// this is the success callback from telling the navigator (your browser) to get the current user's position
-// we do this on line 13 above. We pass in a function to call on success, a function to call on error, and some options to tell the geolocation api how we want it to run.
-// on successfully locating the user, geolocationSuccess() gets called automatically, and it is passed the user's position as an argument.
-// on error, geolocationError is called.
-
-
 function geolocationSuccess(position) {
-  // here we take the `position` object returned by the geolocation api
-  // and turn it into google maps LatLng object by calling the google.maps.LatLng constructor function
-  // it 2 arguments: one for latitude, one for longitude.
-  // You could refactor this section to pass google maps your own coordinates rather than using geolocation for the user's current location.
-  // But you must use coordinates to use this method.
+  var responseArray = [];
+  var latlongArray = [];
+  var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   var userLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
 
   var myOptions = {
-    zoom : 16,
+    zoom : 12,
     center : userLatLng,
     mapTypeId : google.maps.MapTypeId.ROADMAP
   };
-  // Draw the map - you have to use 'getElementById' here.
   var mapObject = new google.maps.Map(document.getElementById("map"), myOptions);
-  // Place the marker
+
   new google.maps.Marker({
     map: mapObject,
     position: userLatLng
   });
 
+  $.get("https://bikeindex.org/api/v3/search?location=" + userLatLng.lat() +',' + userLatLng.lng() + "&distance=10&stolenness=proximity")
+  .then(function(response){
+    response.bikes.forEach(function(bike) {
+      responseArray.push(bike.stolen_location);
+    });
+    responseArray.forEach(function(location){
+      $.get("https://maps.googleapis.com/maps/api/geocode/json?address=" + location + "&key=" + geoKey)
+      .then(function(response) {
+        console.log(response.results[0].geometry.location);
+        latlongArray.push(response.results[0].geometry.location);
+        var markers = latlongArray.map(function(location, i) {
+          return new google.maps.Marker({
+            position: location,
+            label: labels[i % labels.length]
+          });
+        });
+
+        var markerCluster = new MarkerClusterer(mapObject, markers,
+                  {imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
+      });
+    });
+  });
+  // console.log(latlongArray);
+  // var markers = latlongArray.map(function(location, i) {
+  //   return new google.maps.Marker({
+  //     position: location,
+  //     label: labels[i % labels.length]
+  //   });
+  // });
+  //
+  // var markerCluster = new MarkerClusterer(mapObject, markers,
+  //           {imagePath: 'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m'});
 }
 
 function geolocationError(positionError) {
